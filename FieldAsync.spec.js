@@ -43,6 +43,12 @@ describe('FieldAsync.spec.js', () => {
     expect(wrapper.find('svg').exists()).toBe(false)
   })
 
+  it('render an icon with corresponding css class', () => {
+    expect(wrapper.find('.validated').exists()).toBe(false)
+    wrapper.setProps({ showSuccessIcon: true })
+    expect(wrapper.find('.validated').exists()).toBe(true)
+  })
+
   it('render a view depending on label param', () => {
     expect(wrapper.find('.form-group-label').exists()).toBe(true)
     expect(wrapper.text()).toContain(userNameData.label)
