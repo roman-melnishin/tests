@@ -1,62 +1,16 @@
-import EditForm from '@/components/edit-form/EditForm'
 import config from '@/config'
 import i18n from '@/translations'
-import { shallow } from '@vue/test-utils'
+import { shallow, mount } from '@vue/test-utils'
 import Vuex from 'vuex'
+import EditForm from '@/components/edit-form/EditForm'
+import productItemMock from '../../fixtures/productItemMock.json'
+import productPlatformsMock from '../../fixtures/productPlatformsMock.json'
 
+const { messages } = i18n
 const propsData = {
   readonly: false,
-  back: function () {
-    console.log('back')
-  },
-  preloaded: {
-    'id': 729394,
-    'name': 'asdasda',
-    'description': 'asdsad',
-    'created': '2018-02-07T08:23:53.468477Z',
-    'number_of_views': 0,
-    'price': '212.00',
-    'product_type': {
-      'id': 1,
-      'name': 'Instant'
-    },
-    'status': 'Unapproved',
-    'seller': 'Roman',
-    'photo': 'https://cloud.google.com/images/products/machine-learning/ml-lead.png',
-    'platforms': [
-      {
-        'id': 2,
-        'name': 'Android',
-        'department_type': 'platform'
-      }
-    ],
-    'multiservice': [
-      {
-        'id': 77,
-        'service': {
-          'id': 2,
-          'name': 'Gameaccount/Unlock All',
-          'department_type': 'service'
-        },
-        'game': {
-          'id': 3,
-          'name': 'COD',
-          'department_type': 'game'
-        },
-        'series': {
-          'id': 15,
-          'name': 'Advanced Warfare',
-          'department_type': 'game series'
-        }
-      }
-    ],
-    'delivery_time': null,
-    'total_items': 1,
-    'bought_items': 0,
-    'rate': 0,
-    'comment': null,
-    'reviews': null
-  }
+  back: jest.fn(),
+  preloaded: productItemMock.data
 }
 
 describe('EditForm.spec.js', () => {
@@ -71,18 +25,19 @@ describe('EditForm.spec.js', () => {
     store = new Vuex.Store({
       state: {},
       actions: {
-        loadProductTypes: jest.fn()
+        loadProductTypes: jest.fn(),
+        loadGameSeries: jest.fn()
       },
       getters: {
         getProductTypes: jest.fn(() => []),
         getUser: jest.fn(),
-        getPlatformList: jest.fn(),
+        getPlatformList: jest.fn(() => productPlatformsMock),
         getServiceList: jest.fn(),
         getGameList: jest.fn()
       }
     })
 
-    wrapper = shallow(EditForm, {
+    wrapper = mount(EditForm, {
       i18n,
       store,
       propsData,
@@ -107,6 +62,7 @@ describe('EditForm.spec.js', () => {
         preloaded
       }
     })
+
     const image = wrapper.find('.product-img')
     expect(image.exists()).toBe(true)
     expect(image.attributes().src).toBe(config.emptyImg)
@@ -134,5 +90,29 @@ describe('EditForm.spec.js', () => {
   it('photo on change', () => {
     wrapper.find('input[type=file]').trigger('change')
     expect(photoChangeSpy).toBeCalled()
+  })
+
+  it('render product id input field with correct value', () => {
+    const productIdInput = wrapper.find(`input[name="${messages.en.product.id}"]`)
+    expect(productIdInput.exists()).toBe(true)
+    expect(parseInt(productIdInput.element.value)).toBe(wrapper.vm.good.id)
+  })
+
+  it('render product date input field with correct value', () => {
+    const productDateInput = wrapper.find(`input[name="${messages.en.product.date}"]`)
+    expect(productDateInput.exists()).toBe(true)
+    expect(productDateInput.element.value).toBe(wrapper.vm.createdFormatted)
+  })
+
+  it('render product title input field with correct value', () => {
+    const productTitleInput = wrapper.find(`input[name="${messages.en.product.title}"]`)
+    expect(productTitleInput.exists()).toBe(true)
+    expect(productTitleInput.element.value).toBe(wrapper.vm.good.name)
+  })
+
+  it('Render multiselect with correct options', () => {
+    const multiselectOptions = wrapper.findAll('.multiselect__element')
+    expect(multiselectOptions.length).toBe(productPlatformsMock.length)
+    expect(multiselectOptions.wrappers[0].text()).toBe(productPlatformsMock[0].name)
   })
 })
