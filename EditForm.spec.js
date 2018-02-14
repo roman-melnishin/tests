@@ -17,6 +17,7 @@ const { messages } = i18n
 const propsData = {
   readonly: false,
   back: jest.fn(),
+  save: jest.fn(),
   preloaded: productItemMock.data
 }
 
@@ -60,6 +61,14 @@ describe('EditForm.spec.js', () => {
         saveGood
       }
     })
+  })
+
+  it('set correct data to selectedPlatforms', () => {
+    expect(wrapper.props().preloaded.platforms).toEqual(wrapper.vm.selectedPlatforms)
+  })
+
+  it('set correct data to selectedServices', () => {
+    expect(wrapper.props().preloaded.multiservice).toEqual(wrapper.vm.selectedServices)
   })
 
   it('render an uploaded image', () => {
@@ -145,7 +154,7 @@ describe('EditForm.spec.js', () => {
     expect(gameSeriesSelect.find(':selected').element._value.name).toBe(multiservice.series.name)
   })
 
-  it('Fill multiservices selects without existing product data', () => {
+  it('Fill multiservices selects without data', () => {
     wrapper.vm.selectedServices = [{ service: null, game: null, series: null, selectedSeries: [] }]
 
     Vue.nextTick(() => {
@@ -184,11 +193,10 @@ describe('EditForm.spec.js', () => {
     expect(gameSelect.attributes().disabled).toBeTruthy()
   })
 
-  it('render/don\'t render remove service button and handle remove action on click', () => {
+  it('render/don\'t render remove service button', () => {
     expect(wrapper.find('.remove-icon').exists()).toBe(false)
-    const services = productSelectedServicesMock.few
     wrapper.setData({
-      selectedServices: services,
+      selectedServices: productSelectedServicesMock.few,
       type: {
         'id': 1,
         'name': 'Instant'
@@ -197,9 +205,21 @@ describe('EditForm.spec.js', () => {
     })
     expect(wrapper.find('.remove-icon').exists()).toBe(false)
     wrapper.setData({ readonly: false })
-    expect(wrapper.findAll('.remove-icon').length).toBe(services.length)
+    expect(wrapper.find('.remove-icon').exists()).toBe(true)
+
+  })
+
+  it('handle remove service action on click', () => {
+    wrapper.setData({
+      selectedServices: productSelectedServicesMock.few,
+      type: {
+        'id': 1,
+        'name': 'Instant'
+      }
+    })
+    expect(wrapper.findAll('.remove-icon').length).toBe(productSelectedServicesMock.few.length)
     wrapper.findAll('.remove-icon').at(0).trigger('click')
-    expect(wrapper.findAll('.remove-icon').length).toBe(services.length - 1)
+    expect(wrapper.findAll('.remove-icon').length).toBe(productSelectedServicesMock.few.length - 1)
     wrapper.findAll('.remove-icon').at(0).trigger('click')
     expect(wrapper.find('.remove-icon').exists()).toBe(false)
   })
@@ -210,7 +230,7 @@ describe('EditForm.spec.js', () => {
     expect(wrapper.find('.add-service').exists()).toBe(false)
   })
 
-  it('render/don\'t render add service button and handle add service action on click', () => {
+  it('render/don\'t render add service button', () => {
     wrapper.setData({
       selectedServices: productSelectedServicesMock.many,
       type: {
@@ -225,6 +245,16 @@ describe('EditForm.spec.js', () => {
     expect(wrapper.find('.add-service a').exists()).toBe(false)
     wrapper.setData({ readonly: false })
     expect(wrapper.find('.add-service a').exists()).toBe(true)
+  })
+
+  it('handle add service action on click', () => {
+    wrapper.setData({
+      selectedServices: productSelectedServicesMock.few,
+      type: {
+        'id': 1,
+        'name': 'Instant'
+      }
+    })
     const selectedServicesBefore = wrapper.vm.selectedServices.length
     const addedServicesBlockBefore = wrapper.findAll('.added-service').length
     wrapper.find('.add-service a').trigger('click')
