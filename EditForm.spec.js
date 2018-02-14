@@ -1,6 +1,7 @@
 import config from '@/config'
 import i18n from '@/translations'
-import { shallow, mount } from '@vue/test-utils'
+import { mount } from '@vue/test-utils'
+import Vue from 'vue'
 import Vuex from 'vuex'
 import EditForm from '@/components/edit-form/EditForm'
 import userMock from '../../fixtures/userMock.json'
@@ -22,16 +23,14 @@ describe('EditForm.spec.js', () => {
   let wrapper
   let store
 
-  const photoChangeSpy = jest.fn(() => {
-    console.log('changing the photo')
-  })
+  const photoChange = jest.fn()
+  const selectGame = jest.fn()
 
   beforeEach(() => {
     store = new Vuex.Store({
       state: {},
       actions: {
-        loadProductTypes: jest.fn(() => productTypesMock),
-        loadGameSeries: jest.fn(() => productGameSeriesMock)
+        loadProductTypes: jest.fn(() => productTypesMock)
       },
       getters: {
         getProductTypes: jest.fn(() => []),
@@ -47,7 +46,8 @@ describe('EditForm.spec.js', () => {
       store,
       propsData,
       methods: {
-        photoChange: photoChangeSpy
+        photoChange,
+        selectGame
       }
     })
   })
@@ -58,19 +58,13 @@ describe('EditForm.spec.js', () => {
   })
 
   it('render image by default', () => {
-    const preloaded = { ...wrapper.props().preloaded, photo: null }
-    wrapper = shallow(EditForm, {
-      i18n,
-      store,
-      propsData: {
-        ...propsData,
-        preloaded
-      }
-    })
+    wrapper.vm.good.photo = null
 
-    const image = wrapper.find('.product-img')
-    expect(image.exists()).toBe(true)
-    expect(image.attributes().src).toBe(config.emptyImg)
+    Vue.nextTick(() => {
+      const image = wrapper.find('.product-img')
+      expect(image.exists()).toBe(true)
+      expect(image.attributes().src).toBe(config.emptyImg)
+    })
   })
 
   it('render remove photo button', () => {
@@ -94,7 +88,7 @@ describe('EditForm.spec.js', () => {
 
   it('photo on change', () => {
     wrapper.find('input[type=file]').trigger('change')
-    expect(photoChangeSpy).toBeCalled()
+    expect(photoChange).toBeCalled()
   })
 
   it('render product id input field with correct value', () => {
@@ -126,37 +120,57 @@ describe('EditForm.spec.js', () => {
     const selects = servicesContainer.findAll('select')
     expect(servicesContainer.exists()).toBe(true)
     expect(selects.length).toBe(3)
+  })
 
+  it('Fill multiservices selects with existing product data', () => {
+    const selects = wrapper.findAll('.added-service select')
     const serviceSelect = selects.at(0)
     const gameSelect = selects.at(1)
     const gameSeriesSelect = selects.at(2)
-    const { multiservice } = propsData.preloaded
-
-    // console.log(multiservice[0].service.name)
-    expect(serviceSelect.find(':selected').element._value.name).toBe(multiservice[0].service.name)
-    expect(gameSelect.find(':selected').element._value.name).toBe(multiservice[0].game.name)
-    // console.log(wrapper.vm.selectedServices.selectedSeries)
-    // console.log(wrapper.html())
-
-    // expect(wrapper.vm.selectedServices.selectedSeries).toEqual(productGameSeriesMock)
-    // wrapper.update()
-    // wrapper.vm.selectedServices.selectedSeries = productGameSeriesMock
-    console.log('---')
-    console.log(wrapper.vm.selectedServices)
+    const multiservice = propsData.preloaded.multiservice[0]
     const selectedServices = { ...wrapper.vm.selectedServices[0], selectedSeries: productGameSeriesMock }
     wrapper.setData({ selectedServices: [selectedServices] })
-    console.log(wrapper.vm.selectedServices)
-    console.log(wrapper.html())
-    // console.log(wrapper.html())
-    // console.log(multiservice[0].series.name)
-    // expect(gameSeriesSelect.find(':selected').element._value.name).toBe(multiservice[0].series.name)
+    expect(serviceSelect.find(':selected').element._value.name).toBe(multiservice.service.name)
+    expect(gameSelect.find(':selected').element._value.name).toBe(multiservice.game.name)
+    expect(gameSeriesSelect.find(':selected').element._value.name).toBe(multiservice.series.name)
+  })
 
-    // expect(serviceSelect.findAll('option').length).toBe(multiservice[0].service.name)
-    // expect(gameSelect.findAll('option').length).toBe(store.getters.getGameList.length + 1)
-    // expect(gameSeriesSelect.findAll('option').length).toBe(store.getters.getGameList.length + 1)
+  it('Fill multiservices selects without existing product data', () => {
+    wrapper.vm.selectedServices = [{ service: null, game: null, series: null, selectedSeries: [] }]
 
-    // expect(serviceSelect.findAll('option').length).toBe(store.getters.getServiceList.length + 1)
-    // expect(gameSelect.findAll('option').length).toBe(store.getters.getGameList.length + 1)
-    // expect(gameSeriesSelect.findAll('option').length).toBe(store.getters.getGameList.length + 1)
+    Vue.nextTick(() => {
+      const selects = wrapper.findAll('.added-service select')
+      const serviceSelect = selects.at(0)
+      const gameSelect = selects.at(1)
+      const gameSeriesSelect = selects.at(2)
+
+      expect(serviceSelect.element.options.length).toBe(store.getters.getServiceList.length + 1)
+      expect(gameSelect.element.options.length).toBe(store.getters.getGameList.length + 1)
+      expect(gameSeriesSelect.element.options.length).toBe(1)
+    })
+  })
+
+  it('selectGame method occurs when game select change', () => {
+    const gameSelect = wrapper.findAll('.added-service select').at(1)
+    gameSelect.trigger('change')
+    expect(selectGame).toBeCalled()
+  })
+
+  it('render multiservice selects with/without disabled attribute', () => {
+    const selects = wrapper.findAll('.added-service select')
+    const serviceSelect = selects.at(0)
+    const gameSelect = selects.at(1)
+    const gameSeriesSelect = selects.at(2)
+
+    expect(wrapper.vm.selectedPlatforms.length).toBeTruthy()
+    expect(serviceSelect.attributes().disabled).not.toBeTruthy()
+    expect(gameSeriesSelect.attributes().disabled).not.toBeTruthy()
+    expect(gameSelect.attributes().disabled).not.toBeTruthy()
+
+    wrapper.setData({ selectedPlatforms: [] })
+    expect(wrapper.vm.selectedPlatforms.length).not.toBeTruthy()
+    expect(serviceSelect.attributes().disabled).toBeTruthy()
+    expect(gameSeriesSelect.attributes().disabled).toBeTruthy()
+    expect(gameSelect.attributes().disabled).toBeTruthy()
   })
 })
