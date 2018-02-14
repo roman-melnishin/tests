@@ -26,6 +26,8 @@ describe('EditForm.spec.js', () => {
 
   const photoChange = jest.fn()
   const selectGame = jest.fn()
+  const returnBack = jest.fn()
+  const saveGood = jest.fn()
 
   beforeEach(() => {
     store = new Vuex.Store({
@@ -45,12 +47,17 @@ describe('EditForm.spec.js', () => {
     })
 
     wrapper = mount(EditForm, {
+      stubs: {
+        ValuableData: '<div>ValuableData component stub</div>'
+      },
       i18n,
       store,
       propsData,
       methods: {
         photoChange,
-        selectGame
+        selectGame,
+        returnBack,
+        saveGood
       }
     })
   })
@@ -223,5 +230,30 @@ describe('EditForm.spec.js', () => {
     wrapper.find('.add-service a').trigger('click')
     expect(wrapper.vm.selectedServices.length).toBe(selectedServicesBefore + 1)
     expect(wrapper.findAll('.added-service').length).toBe(addedServicesBlockBefore + 1)
+  })
+
+  it('on click back button', () => {
+    wrapper.find('.btn-back').trigger('click')
+    expect(returnBack).toBeCalled()
+  })
+
+  it('render correct back button text', () => {
+    expect(wrapper.find('.btn-back').text()).toBe(messages.en.global.cancel)
+    wrapper.setData({ readonly: true })
+    expect(wrapper.find('.btn-back').text()).toBe(messages.en.global.close)
+  })
+
+  it('show or hide save button', () => {
+    wrapper.setData({ readonly: false, valDataMode: '' })
+    expect(wrapper.find('.btn-save').element.style._values.display).not.toBe('none')
+    wrapper.setData({ readonly: true, valDataMode: 'edit' })
+    expect(wrapper.find('.btn-save').element.style._values.display).not.toBe('none')
+    wrapper.setData({ valDataMode: '' })
+    expect(wrapper.find('.btn-save').element.style._values.display).toBe('none')
+  })
+
+  it('on click save button', () => {
+    wrapper.find('.btn-save').trigger('click')
+    expect(returnBack).toBeCalled()
   })
 })
