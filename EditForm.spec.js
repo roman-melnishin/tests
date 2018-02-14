@@ -11,6 +11,7 @@ import productPlatformsMock from '../../fixtures/productPlatformsMock.json'
 import productServicesMock from '../../fixtures/productServicesMock.json'
 import productGamesMock from '../../fixtures/productGamesMock.json'
 import productGameSeriesMock from '../../fixtures/productGameSeriesMock.json'
+import productSelectedServicesMock from '../../fixtures/productSelectedServicesMock.json'
 
 const { messages } = i18n
 const propsData = {
@@ -30,7 +31,9 @@ describe('EditForm.spec.js', () => {
     store = new Vuex.Store({
       state: {},
       actions: {
-        loadProductTypes: jest.fn(() => productTypesMock)
+        loadProductTypes: jest.fn(() => productTypesMock),
+        setProductType: jest.fn(),
+        loadCategoryForProduct: jest.fn()
       },
       getters: {
         getProductTypes: jest.fn(() => []),
@@ -172,5 +175,53 @@ describe('EditForm.spec.js', () => {
     expect(serviceSelect.attributes().disabled).toBeTruthy()
     expect(gameSeriesSelect.attributes().disabled).toBeTruthy()
     expect(gameSelect.attributes().disabled).toBeTruthy()
+  })
+
+  it('render/don\'t render remove service button and handle remove action on click', () => {
+    expect(wrapper.find('.remove-icon').exists()).toBe(false)
+    const services = productSelectedServicesMock.few
+    wrapper.setData({
+      selectedServices: services,
+      type: {
+        'id': 1,
+        'name': 'Instant'
+      },
+      readonly: true
+    })
+    expect(wrapper.find('.remove-icon').exists()).toBe(false)
+    wrapper.setData({ readonly: false })
+    expect(wrapper.findAll('.remove-icon').length).toBe(services.length)
+    wrapper.findAll('.remove-icon').at(0).trigger('click')
+    expect(wrapper.findAll('.remove-icon').length).toBe(services.length - 1)
+    wrapper.findAll('.remove-icon').at(0).trigger('click')
+    expect(wrapper.find('.remove-icon').exists()).toBe(false)
+  })
+
+  it('render/don\'t render add service block', () => {
+    expect(wrapper.find('.add-service').exists()).toBe(true)
+    wrapper.setData({ selectedPlatforms: [] })
+    expect(wrapper.find('.add-service').exists()).toBe(false)
+  })
+
+  it('render/don\'t render add service button and handle add service action on click', () => {
+    wrapper.setData({
+      selectedServices: productSelectedServicesMock.many,
+      type: {
+        'id': 1,
+        'name': 'Instant'
+      }
+    })
+    expect(wrapper.find('.add-service a').exists()).toBe(false)
+    wrapper.setData({ selectedServices: productSelectedServicesMock.few })
+    expect(wrapper.find('.add-service a').exists()).toBe(true)
+    wrapper.setData({ readonly: true })
+    expect(wrapper.find('.add-service a').exists()).toBe(false)
+    wrapper.setData({ readonly: false })
+    expect(wrapper.find('.add-service a').exists()).toBe(true)
+    const selectedServicesBefore = wrapper.vm.selectedServices.length
+    const addedServicesBlockBefore = wrapper.findAll('.added-service').length
+    wrapper.find('.add-service a').trigger('click')
+    expect(wrapper.vm.selectedServices.length).toBe(selectedServicesBefore + 1)
+    expect(wrapper.findAll('.added-service').length).toBe(addedServicesBlockBefore + 1)
   })
 })
