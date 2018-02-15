@@ -17,13 +17,14 @@ const { messages } = i18n
 const propsData = {
   readonly: false,
   back: jest.fn(),
-  save: jest.fn(),
   preloaded: productItemMock.data
 }
 
 describe('EditForm.spec.js', () => {
   let wrapper
   let store
+  let actions
+  let getters
 
   const photoChange = jest.fn()
   const selectGame = jest.fn()
@@ -31,20 +32,24 @@ describe('EditForm.spec.js', () => {
   const saveGood = jest.fn()
 
   beforeEach(() => {
+    actions = {
+      loadProductTypes: jest.fn(() => productTypesMock),
+      setProductType: jest.fn(),
+      loadCategoryForProduct: jest.fn()
+    }
+
+    getters = {
+      getProductTypes: () => [],
+      getUser: () => userMock,
+      getPlatformList: () => productPlatformsMock,
+      getServiceList: () => productServicesMock,
+      getGameList: () => productGamesMock
+    }
+
     store = new Vuex.Store({
       state: {},
-      actions: {
-        loadProductTypes: jest.fn(() => productTypesMock),
-        setProductType: jest.fn(),
-        loadCategoryForProduct: jest.fn()
-      },
-      getters: {
-        getProductTypes: jest.fn(() => []),
-        getUser: jest.fn(() => userMock),
-        getPlatformList: jest.fn(() => productPlatformsMock),
-        getServiceList: jest.fn(() => productServicesMock),
-        getGameList: jest.fn(() => productGamesMock)
-      }
+      actions,
+      getters
     })
 
     wrapper = mount(EditForm, {
@@ -61,6 +66,21 @@ describe('EditForm.spec.js', () => {
         saveGood
       }
     })
+  })
+
+  it('calls store action "loadProductTypes" when component creates', () => {
+    expect(actions.loadProductTypes).toHaveBeenCalled()
+  })
+
+  it('calls store action "setProductType" and "loadCategoryForProduct" when type changes', () => {
+    wrapper.setData({
+      type: {
+        'id': 1,
+        'name': 'Instant'
+      }
+    })
+    expect(actions.setProductType).toHaveBeenCalled()
+    expect(actions.loadCategoryForProduct).toHaveBeenCalled()
   })
 
   it('set correct data to selectedPlatforms', () => {
@@ -195,6 +215,7 @@ describe('EditForm.spec.js', () => {
 
   it('render/don\'t render remove service button', () => {
     expect(wrapper.find('.remove-icon').exists()).toBe(false)
+
     wrapper.setData({
       selectedServices: productSelectedServicesMock.few,
       type: {
@@ -204,9 +225,9 @@ describe('EditForm.spec.js', () => {
       readonly: true
     })
     expect(wrapper.find('.remove-icon').exists()).toBe(false)
+
     wrapper.setData({ readonly: false })
     expect(wrapper.find('.remove-icon').exists()).toBe(true)
-
   })
 
   it('handle remove service action on click', () => {
@@ -218,14 +239,17 @@ describe('EditForm.spec.js', () => {
       }
     })
     expect(wrapper.findAll('.remove-icon').length).toBe(productSelectedServicesMock.few.length)
+
     wrapper.findAll('.remove-icon').at(0).trigger('click')
     expect(wrapper.findAll('.remove-icon').length).toBe(productSelectedServicesMock.few.length - 1)
+
     wrapper.findAll('.remove-icon').at(0).trigger('click')
     expect(wrapper.find('.remove-icon').exists()).toBe(false)
   })
 
   it('render/don\'t render add service block', () => {
     expect(wrapper.find('.add-service').exists()).toBe(true)
+
     wrapper.setData({ selectedPlatforms: [] })
     expect(wrapper.find('.add-service').exists()).toBe(false)
   })
@@ -239,10 +263,13 @@ describe('EditForm.spec.js', () => {
       }
     })
     expect(wrapper.find('.add-service a').exists()).toBe(false)
+
     wrapper.setData({ selectedServices: productSelectedServicesMock.few })
     expect(wrapper.find('.add-service a').exists()).toBe(true)
+
     wrapper.setData({ readonly: true })
     expect(wrapper.find('.add-service a').exists()).toBe(false)
+
     wrapper.setData({ readonly: false })
     expect(wrapper.find('.add-service a').exists()).toBe(true)
   })
@@ -269,6 +296,7 @@ describe('EditForm.spec.js', () => {
 
   it('render correct back button text', () => {
     expect(wrapper.find('.btn-back').text()).toBe(messages.en.global.cancel)
+
     wrapper.setData({ readonly: true })
     expect(wrapper.find('.btn-back').text()).toBe(messages.en.global.close)
   })
@@ -276,8 +304,10 @@ describe('EditForm.spec.js', () => {
   it('show or hide save button', () => {
     wrapper.setData({ readonly: false, valDataMode: '' })
     expect(wrapper.find('.btn-save').element.style._values.display).not.toBe('none')
+
     wrapper.setData({ readonly: true, valDataMode: 'edit' })
     expect(wrapper.find('.btn-save').element.style._values.display).not.toBe('none')
+
     wrapper.setData({ valDataMode: '' })
     expect(wrapper.find('.btn-save').element.style._values.display).toBe('none')
   })
