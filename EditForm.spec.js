@@ -126,63 +126,61 @@ describe('EditForm.spec.js', () => {
   })
 
   it('photo on change', () => {
-    wrapper.find('input[type=file]').trigger('change')
+    wrapper.find('.photo-change').trigger('change')
     expect(photoChange).toBeCalled()
   })
 
   it('render product id input field with correct value', () => {
-    const productIdInput = wrapper.find(`input[name="${messages.en.product.id}"]`)
+    const productIdInput = wrapper.find('[name=product-id]')
     expect(productIdInput.exists()).toBe(true)
     expect(parseInt(productIdInput.element.value)).toBe(wrapper.vm.good.id)
   })
 
   it('render product date input field with correct value', () => {
-    const productDateInput = wrapper.find(`input[name="${messages.en.product.date}"]`)
+    const productDateInput = wrapper.find('[name=product-date]')
     expect(productDateInput.exists()).toBe(true)
     expect(productDateInput.element.value).toBe(wrapper.vm.createdFormatted)
   })
 
   it('render product title input field with correct value', () => {
-    const productTitleInput = wrapper.find(`input[name="${messages.en.product.title}"]`)
+    const productTitleInput = wrapper.find('[name=product-title]')
     expect(productTitleInput.exists()).toBe(true)
     expect(productTitleInput.element.value).toBe(wrapper.vm.good.name)
   })
 
-  it('Render multiselect with correct options', () => {
+  it('render multiselect with correct options', () => {
     const multiselectOptions = wrapper.findAll('.multiselect__element')
     expect(multiselectOptions.length).toBe(store.getters.getPlatformList.length)
     expect(multiselectOptions.at(0).text()).toBe(store.getters.getPlatformList[0].name)
   })
 
-  it('Render multiservices selects', () => {
+  it('render multiservices selects', () => {
     const servicesContainer = wrapper.find('.added-service')
     const selects = servicesContainer.findAll('select')
     expect(servicesContainer.exists()).toBe(true)
     expect(selects.length).toBe(3)
   })
 
-  it('Fill multiservices selects with existing product data', () => {
-    const selects = wrapper.findAll('.added-service select')
-    const serviceSelect = selects.at(0)
-    const gameSelect = selects.at(1)
-    const gameSeriesSelect = selects.at(2)
+  it('fill multiservices selects with existing product data', () => {
+    const serviceSelect = wrapper.find('.service-select')
+    const gameSelect = wrapper.find('.game-select')
+    const gameSeriesSelect = wrapper.find('.game-series-select')
+
     const multiservice = propsData.preloaded.multiservice[0]
     const selectedServices = { ...wrapper.vm.selectedServices[0], selectedSeries: productGameSeriesMock }
     wrapper.setData({ selectedServices: [selectedServices] })
-    expect(serviceSelect.find(':selected').element._value.name).toBe(multiservice.service.name)
-    expect(gameSelect.find(':selected').element._value.name).toBe(multiservice.game.name)
-    expect(gameSeriesSelect.find(':selected').element._value.name).toBe(multiservice.series.name)
+    expect(serviceSelect.find(':selected').text()).toBe(multiservice.service.name)
+    expect(gameSelect.find(':selected').text()).toBe(multiservice.game.name)
+    expect(gameSeriesSelect.find(':selected').text()).toBe(multiservice.series.name)
   })
 
   it('Fill multiservices selects without data', () => {
     wrapper.vm.selectedServices = [{ service: null, game: null, series: null, selectedSeries: [] }]
 
     Vue.nextTick(() => {
-      const selects = wrapper.findAll('.added-service select')
-      const serviceSelect = selects.at(0)
-      const gameSelect = selects.at(1)
-      const gameSeriesSelect = selects.at(2)
-
+      const serviceSelect = wrapper.find('.service-select')
+      const gameSelect = wrapper.find('.game-select')
+      const gameSeriesSelect = wrapper.find('.game-series-select')
       expect(serviceSelect.element.options.length).toBe(store.getters.getServiceList.length + 1)
       expect(gameSelect.element.options.length).toBe(store.getters.getGameList.length + 1)
       expect(gameSeriesSelect.element.options.length).toBe(1)
@@ -196,10 +194,9 @@ describe('EditForm.spec.js', () => {
   })
 
   it('render multiservice selects with/without disabled attribute', () => {
-    const selects = wrapper.findAll('.added-service select')
-    const serviceSelect = selects.at(0)
-    const gameSelect = selects.at(1)
-    const gameSeriesSelect = selects.at(2)
+    const serviceSelect = wrapper.find('.service-select')
+    const gameSelect = wrapper.find('.game-select')
+    const gameSeriesSelect = wrapper.find('.game-series-select')
 
     expect(wrapper.vm.selectedPlatforms.length).toBeTruthy()
     expect(serviceSelect.attributes().disabled).not.toBeTruthy()
@@ -303,13 +300,13 @@ describe('EditForm.spec.js', () => {
 
   it('show or hide save button', () => {
     wrapper.setData({ readonly: false, valDataMode: '' })
-    expect(wrapper.find('.btn-save').element.style._values.display).not.toBe('none')
+    expect(wrapper.find('.btn-save').visible()).toBe(true)
 
     wrapper.setData({ readonly: true, valDataMode: 'edit' })
-    expect(wrapper.find('.btn-save').element.style._values.display).not.toBe('none')
+    expect(wrapper.find('.btn-save').visible()).toBe(true)
 
     wrapper.setData({ valDataMode: '' })
-    expect(wrapper.find('.btn-save').element.style._values.display).toBe('none')
+    expect(wrapper.find('.btn-save').visible()).toBe(false)
   })
 
   it('on click save button', () => {
