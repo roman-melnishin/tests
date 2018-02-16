@@ -2,6 +2,9 @@ import ValuableData from '@/components/edit-form/ValuableData'
 import i18n from '@/translations'
 import { mount } from '@vue/test-utils'
 
+const changeFile = jest.fn()
+const parseFile = jest.fn()
+
 const newProductPropsData = {
   dirty: false,
   isNew: true,
@@ -51,7 +54,14 @@ describe('ValuableData.spec.js', () => {
   let wrapper
 
   beforeEach(() => {
-    wrapper = mount(ValuableData, { i18n, propsData: newProductPropsData })
+    wrapper = mount(ValuableData, {
+      i18n,
+      propsData: newProductPropsData,
+      methods: {
+        changeFile,
+        parseFile
+      }
+    })
   })
 
   it('render according to isNew property', () => {
@@ -96,6 +106,10 @@ describe('ValuableData.spec.js', () => {
     wrapper = mount(ValuableData, { i18n, propsData: existingProductPropsData })
     expect(wrapper.props().value.array.length).toBe(wrapper.vm.quantity)
     expect(wrapper.vm.quantity).toBe(parseInt(wrapper.find('.quantity-input').element.value))
+
+    const value = { ...wrapper.vm.value, array: [] }
+    wrapper = mount(ValuableData, { i18n, propsData: { ...newProductPropsData, value } })
+    expect(wrapper.vm.quantity).toBe(1)
   })
 
   it('render correct value of quantity and totalItems', () => {
@@ -109,5 +123,108 @@ describe('ValuableData.spec.js', () => {
 
     expect(numbers[0]).toBe(wrapper.vm.quantity)
     expect(numbers[1]).toBe(wrapper.vm.totalItems)
+  })
+
+  it('render valuable data textarea for each item in manualList', () => {
+    expect(wrapper.findAll('.valuable-data textarea').length).toBe(wrapper.vm.manualList.length)
+    wrapper = mount(ValuableData, { i18n, propsData: existingProductPropsData })
+    expect(wrapper.findAll('.valuable-data textarea').length).toBe(wrapper.vm.manualList.length)
+  })
+
+  it('check possibility to edit valuable data textarea', () => {
+    expect(wrapper.find('.valuable-data textarea').attributes().readonly).not.toBeTruthy()
+    wrapper.setData({ readonly: true })
+    expect(wrapper.find('.valuable-data textarea').attributes().readonly).toBeTruthy()
+    wrapper.setData({ valDataMode: 'edit' })
+    expect(wrapper.find('.valuable-data textarea').attributes().readonly).not.toBeTruthy()
+  })
+
+  it('check content of valuable data textarea', () => {
+    wrapper = mount(ValuableData, { i18n, propsData: existingProductPropsData })
+    const valuableDataTextarea = wrapper.findAll('.valuable-data textarea')
+    wrapper.vm.manualList.forEach((item, index) => {
+      expect(item.content === valuableDataTextarea.at(index).element.value)
+    })
+  })
+
+  it('check existance of remove valuable data textarea button', () => {
+    expect(wrapper.find('.remove-valuable-data').exists()).toBe(false)
+    wrapper = mount(ValuableData, { i18n, propsData: existingProductPropsData })
+    expect(wrapper.find('.remove-valuable-data').exists()).toBe(true)
+    expect(wrapper.findAll('.remove-valuable-data').length).toBe(wrapper.vm.manualList.length)
+    wrapper.setData({ readonly: true })
+    expect(wrapper.find('.remove-valuable-data').exists()).toBe(false)
+  })
+
+  it('remove specific valuable data textarea on click', () => {
+    wrapper = mount(ValuableData, { i18n, propsData: existingProductPropsData })
+    const valuableDataTextareaLengthBefore = wrapper.findAll('.valuable-data textarea').length
+    const contentOfSpecificTextarea = wrapper.findAll('.valuable-data textarea').at(1)
+
+    wrapper.findAll('.remove-valuable-data').at(1).trigger('click')
+    const valuableDataTextareaLengthAfter = wrapper.findAll('.valuable-data textarea').length
+    expect(wrapper.findAll('.valuable-data textarea').at(1).element.value).not.toBe(contentOfSpecificTextarea)
+    expect(valuableDataTextareaLengthAfter).toBe(valuableDataTextareaLengthBefore - 1)
+  })
+
+  it('handle spy change event', () => {
+    wrapper.setData({ inputMode: 'fromFile' })
+    wrapper.find('.fromFile-view input[type=file]').trigger('change')
+    expect(changeFile).toBeCalled()
+  })
+
+  it('render correct input for linesPerItem', () => {
+    wrapper.setData({ inputMode: 'fromFile' })
+    expect(parseInt(wrapper.find('.lines-field').element.value)).toBe(wrapper.vm.linesPerItem)
+    expect(wrapper.find('.lines-field').attributes().readonly).not.toBeTruthy()
+    wrapper.setData({ readonly: true })
+    expect(wrapper.find('.lines-field').attributes().readonly).toBeTruthy()
+  })
+
+  it('render correct button parse file', () => {
+    wrapper.setData({ inputMode: 'fromFile' })
+    expect(wrapper.find('.btn-parse-file').exists()).toBe(true)
+    expect(wrapper.find('.btn-parse-file').attributes().disabled).toBeTruthy()
+    const value = { ...wrapper.vm.value, file: [{ 'name': 'file_name', 'size': 12345 }] }
+    wrapper.setData({ value })
+    expect(wrapper.find('.btn-parse-file').attributes().disabled).not.toBeTruthy()
+  })
+
+  it('handle spy click on button parse file', () => {
+    wrapper.setData({ inputMode: 'fromFile' })
+    wrapper.find('.btn-parse-file').trigger('click')
+    expect(parseFile).toBeCalled()
+  })
+
+  it('check watcher by changing dirty prop', () => {
+    wrapper.setData({ dirty: true })
+    expect(wrapper.vm.dirty).toBe(true)
+    wrapper.setData({ dirty: false })
+    expect(wrapper.vm.dirty).toBe(false)
+  })
+
+  it('check quantity watcher when we add quantity', (done) => {
+    let number = 1
+    const manualListLengthBefore = wrapper.vm.manualList.length
+    wrapper.setData({ quantity: wrapper.vm.quantity + number, dirty: true })
+    const manualListLengthAfter = wrapper.vm.manualList.length
+    expect(manualListLengthAfter).toBe(manualListLengthBefore + number)
+
+    number = 13
+    wrapper.setData({ quantity: wrapper.vm.quantity + number })
+    setTimeout(() => {
+      expect(wrapper.vm.quantity).toBe(10)
+      expect(wrapper.vm.manualList.length).toBe(10)
+      done()
+    }, 50)
+  })
+
+  it('check quantity watcher when we reduce quantity', () => {
+    wrapper = mount(ValuableData, { i18n, propsData: existingProductPropsData })
+    const number = 1
+    const manualListLengthBefore = wrapper.vm.manualList.length
+    wrapper.setData({ quantity: wrapper.vm.quantity - number })
+    const manualListLengthAfter = wrapper.vm.manualList.length
+    expect(manualListLengthAfter).toBe(manualListLengthBefore - number)
   })
 })

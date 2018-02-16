@@ -313,4 +313,19 @@ describe('EditForm.spec.js', () => {
     wrapper.find('.btn-save').trigger('click')
     expect(returnBack).toBeCalled()
   })
+
+  it('form correct properties when preloaded isn\'t provided', () => {
+    const propsData = {
+      readonly: false,
+      back: jest.fn()
+    }
+    wrapper = mount(EditForm, {
+      i18n,
+      store,
+      propsData
+    })
+    expect(wrapper.vm.preloaded).toEqual({ valuableData: [{content: ''}] })
+    expect(wrapper.vm.selectedPlatforms).toEqual([])
+    expect(wrapper.vm.selectedServices).toEqual([{service: null, game: null, series: null, selectedSeries: []}])
+  })
 })
