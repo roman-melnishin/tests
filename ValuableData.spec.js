@@ -132,11 +132,11 @@ describe('ValuableData.spec.js', () => {
   })
 
   it('check possibility to edit valuable data textarea', () => {
-    expect(wrapper.find('.valuable-data textarea').attributes().readonly).not.toBeTruthy()
+    expect(wrapper.find('.valuable-data textarea').attributes().readonly).toBeFalsy()
     wrapper.setData({ readonly: true })
     expect(wrapper.find('.valuable-data textarea').attributes().readonly).toBeTruthy()
     wrapper.setData({ valDataMode: 'edit' })
-    expect(wrapper.find('.valuable-data textarea').attributes().readonly).not.toBeTruthy()
+    expect(wrapper.find('.valuable-data textarea').attributes().readonly).toBeFalsy()
   })
 
   it('check content of valuable data textarea', () => {
@@ -176,7 +176,7 @@ describe('ValuableData.spec.js', () => {
   it('render correct input for linesPerItem', () => {
     wrapper.setData({ inputMode: 'fromFile' })
     expect(parseInt(wrapper.find('.lines-field').element.value)).toBe(wrapper.vm.linesPerItem)
-    expect(wrapper.find('.lines-field').attributes().readonly).not.toBeTruthy()
+    expect(wrapper.find('.lines-field').attributes().readonly).toBeFalsy()
     wrapper.setData({ readonly: true })
     expect(wrapper.find('.lines-field').attributes().readonly).toBeTruthy()
   })
@@ -187,7 +187,7 @@ describe('ValuableData.spec.js', () => {
     expect(wrapper.find('.btn-parse-file').attributes().disabled).toBeTruthy()
     const value = { ...wrapper.vm.value, file: [{ 'name': 'file_name', 'size': 12345 }] }
     wrapper.setData({ value })
-    expect(wrapper.find('.btn-parse-file').attributes().disabled).not.toBeTruthy()
+    expect(wrapper.find('.btn-parse-file').attributes().disabled).toBeFalsy()
   })
 
   it('handle spy click on button parse file', () => {

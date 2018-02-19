@@ -199,12 +199,12 @@ describe('EditForm.spec.js', () => {
     const gameSeriesSelect = wrapper.find('.game-series-select')
 
     expect(wrapper.vm.selectedPlatforms.length).toBeTruthy()
-    expect(serviceSelect.attributes().disabled).not.toBeTruthy()
-    expect(gameSeriesSelect.attributes().disabled).not.toBeTruthy()
-    expect(gameSelect.attributes().disabled).not.toBeTruthy()
+    expect(serviceSelect.attributes().disabled).toBeFalsy()
+    expect(gameSeriesSelect.attributes().disabled).toBeFalsy()
+    expect(gameSelect.attributes().disabled).toBeFalsy()
 
     wrapper.setData({ selectedPlatforms: [] })
-    expect(wrapper.vm.selectedPlatforms.length).not.toBeTruthy()
+    expect(wrapper.vm.selectedPlatforms.length).toBeFalsy()
     expect(serviceSelect.attributes().disabled).toBeTruthy()
     expect(gameSeriesSelect.attributes().disabled).toBeTruthy()
     expect(gameSelect.attributes().disabled).toBeTruthy()
