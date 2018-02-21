@@ -8,12 +8,15 @@ import departmentsMock from '../../fixtures/departmentsMock.json'
 
 const showLogin = jest.fn()
 const logout = jest.fn()
+const search = jest.fn()
+const beforeDestroy = jest.fn()
 
 describe('XmHeader.spec.js', () => {
   let wrapper
   let store
   let actions
   let getters
+  let stubs
 
   beforeEach(() => {
     actions = {
@@ -25,7 +28,7 @@ describe('XmHeader.spec.js', () => {
       getUser: () => userMock,
       getDepartmentsTree: () => departmentsMock,
       getOnlySubtotal: () => 0,
-      getSearched: () => []
+      getSearched: () => {}
     }
 
     store = new Vuex.Store({
@@ -34,15 +37,23 @@ describe('XmHeader.spec.js', () => {
       getters
     })
 
+    stubs = {
+      Departments: '<div class="departments-test">departments component stub</div>',
+      DepartmentsTablet: '<div class="departments-tablet-test">departments tablet component stub</div>',
+      DepartmentsMobile: '<div class="departments-mobile-test">departments mobile component stub</div>',
+      RouterLink: '<div>router link stub</div>'
+    }
+
     wrapper = shallow(XmHeader, {
-      stubs: ['router-link'],
+      stubs,
       i18n,
       store,
-      methods: { showLogin, logout }
+      methods: { showLogin, logout, search },
+      beforeDestroy
     })
   })
 
-  it('render/don\'t render cart indication with correct number', (done) => {
+  it('render/don\'t render cart indication with correct number', () => {
     expect(wrapper.vm.cartItems).toBe(0)
     expect(wrapper.findAll('.cart-indication').wrappers).toEqual([])
 
@@ -52,38 +63,31 @@ describe('XmHeader.spec.js', () => {
         getCartListLength: () => 3
       }
     })
+    wrapper.update()
     expect(wrapper.vm.cartItems).toBe(3)
-    Vue.nextTick(() => {
-      const cartIndicators = wrapper.findAll('.cart-indication')
-      expect(cartIndicators.exists()).toBe(true)
-      cartIndicators.wrappers.forEach(cart => expect(cart.text()).toContain(3))
-      done()
-    })
+    const cartIndicators = wrapper.findAll('.cart-indication')
+    expect(cartIndicators.exists()).toBe(true)
+    cartIndicators.wrappers.forEach(cart => expect(cart.text()).toContain(3))
   })
 
   it('render relevant dropdown menus based on user logged or not', (done) => {
     expect(wrapper.vm.user).toBeTruthy()
     let userMenus = wrapper.findAll('.user-menu')
     userMenus.wrappers.forEach(menu => expect(menu.findAll('.user-item').length).toBeTruthy())
-    const loggedUserMenuItemsQuantityArray = userMenus.wrappers.map(menu => {
-      return menu.findAll('.user-item').length
-    })
+    const loggedUserMenuItemsQuantityArray = userMenus.wrappers.map(menu => menu.findAll('.user-item').length)
     expect(new Set(loggedUserMenuItemsQuantityArray).size).toBe(1)
 
     store.hotUpdate({
       getters: {
         ...getters,
-        getUser: () => {}
+        getUser: () => { }
       }
     })
     expect(wrapper.vm.user).not.toBeTruthy()
-
     Vue.nextTick(() => {
       userMenus = wrapper.findAll('.user-menu')
       userMenus.wrappers.forEach(menu => expect(menu.findAll('.guest-item').length).toBeTruthy())
-      const guestUserMenuItemsQuantityArray = userMenus.wrappers.map(menu => {
-        return menu.findAll('.guest-item').length
-      })
+      const guestUserMenuItemsQuantityArray = userMenus.wrappers.map(menu => menu.findAll('.guest-item').length)
       expect(new Set(guestUserMenuItemsQuantityArray).size).toBe(1)
       done()
     })
@@ -95,20 +99,21 @@ describe('XmHeader.spec.js', () => {
     expect(mainMenu.findAll('[href="/dashboard"]').length).toBe(userMenus.length)
   })
 
-  it('check another core links availability in top nav bar', () => {
+  it('check another core links availability', () => {
     const navbar = wrapper.find('.top-navbar')
     expect(navbar.find('[href="/privacypolicy"]').exists()).toBe(true)
     expect(navbar.find('[href="/imprint"]').exists()).toBe(true)
     expect(navbar.find('[href="/help"]').exists()).toBe(true)
     expect(navbar.find('[href="/conditions"]').exists()).toBe(true)
+    expect(wrapper.find('[href="/cart"]').exists()).toBe(true)
   })
 
-  it('show show user name if logged', () => {
+  it('show user name if logged', () => {
     const firstName = wrapper.vm.user.first_name
     const lastName = wrapper.vm.user.last_name
     let userMenuText = wrapper.find('.user-menu-text').text()
-    expect(userMenuText.indexOf(firstName) > -1)
-    expect(userMenuText.indexOf(lastName) > -1)
+    expect(userMenuText.indexOf(firstName) > -1).toBe(true)
+    expect(userMenuText.indexOf(lastName) > -1).toBe(true)
   })
 
   it('check default values for searchText, showDepartments and showDepartmentsMobile', () => {
@@ -138,10 +143,128 @@ describe('XmHeader.spec.js', () => {
       expect(logout).toBeCalled()
     })
   })
+
+  it('render/don\'t render departments block according to tree length', () => {
+    expect(wrapper.vm.tree.length).toBeTruthy()
+    expect(wrapper.find('#departmentsMobile').exists()).toBe(true)
+    expect(wrapper.find('.departments-main-list').exists()).toBe(true)
+
+    store.hotUpdate({
+      getters: {
+        ...getters,
+        getDepartmentsTree: () => []
+      }
+    })
+    expect(wrapper.vm.tree.length).toBeFalsy()
+    wrapper.update()
+    expect(wrapper.find('#departmentsMobile').exists()).toBe(false)
+    expect(wrapper.find('.departments-main-list').exists()).toBe(false)
+  })
+
+  it('render departments list according to isTouchDevice param', () => {
+    expect(wrapper.vm.isTouchDevice).toBe(false)
+    expect(wrapper.find('.departments-test').exists()).toBe(true)
+    expect(wrapper.find('.departments-tablet-test').exists()).toBe(false)
+
+    wrapper = shallow(XmHeader, {
+      stubs,
+      i18n,
+      store,
+      computed: {
+        isTouchDevice: () => true
+      }
+    })
+    expect(wrapper.vm.isTouchDevice).toBe(true)
+    expect(wrapper.find('.departments-test').exists()).toBe(false)
+    expect(wrapper.find('.departments-tablet-test').exists()).toBe(true)
+  })
+
+  it('check visibility of departments according to showDepartments param', () => {
+    expect(wrapper.vm.showDepartments).toBe(false)
+    expect(wrapper.find('.departments-main-list').visible()).toBe(false)
+
+    wrapper.setData({ showDepartments: true })
+    expect(wrapper.vm.showDepartments).toBe(true)
+    expect(wrapper.find('.departments-main-list').visible()).toBe(true)
+  })
+
+  it('handle close event on departments', () => {
+    wrapper.setData({ showDepartments: true })
+    expect(wrapper.vm.showDepartments).toBe(true)
+    expect(wrapper.find('.departments-main-list').visible()).toBe(true)
+    wrapper.vm.hideDepartmentsRecursively()
+    expect(wrapper.vm.showDepartments).toBe(false)
+  })
+
+  it('handle close event on departments', () => {
+    wrapper.setData({ showDepartments: true })
+    expect(wrapper.vm.showDepartments).toBe(true)
+    expect(wrapper.find('.departments-main-list').visible()).toBe(true)
+    wrapper.vm.hideDepartmentsRecursively()
+    expect(wrapper.vm.showDepartments).toBe(false)
+  })
+
+  it('handle click event on departments-button-desktop', () => {
+    expect(wrapper.find('.departments-button-desktop').exists()).toBe(true)
+    expect(wrapper.vm.showDepartments).toBe(false)
+
+    wrapper.find('.departments-button-desktop').trigger('click')
+    expect(wrapper.vm.showDepartments).toBe(true)
+
+    wrapper.find('.departments-button-desktop').trigger('click')
+    expect(wrapper.vm.showDepartments).toBe(false)
+  })
+
+  it('handle click event on departments-button-desktop', () => {
+    expect(wrapper.find('.departments-button-mobile').exists()).toBe(true)
+    expect(wrapper.vm.showDepartmentsMobile).toBe(false)
+
+    wrapper.find('.departments-button-mobile').trigger('click')
+    expect(wrapper.vm.showDepartmentsMobile).toBe(true)
+
+    wrapper.find('.departments-button-mobile').trigger('click')
+    expect(wrapper.vm.showDepartmentsMobile).toBe(false)
+  })
+
+  it('handle close event on departments-mobile', () => {
+    wrapper.setData({ showDepartmentsMobile: true })
+    expect(wrapper.find('.departments-mobile-test').exists()).toBe(true)
+    expect(wrapper.vm.showDepartmentsMobile).toBe(true)
+
+    wrapper.vm.hideDepartments()
+    expect(wrapper.vm.showDepartmentsMobile).toBe(false)
+  })
+
+  it('correct text by default at search input', () => {
+    const searchInput = wrapper.find('.main-search input')
+    expect(searchInput.exists()).toBe(true)
+    expect(searchInput.element.value).toBe(wrapper.vm.searchText)
+  })
+
+  it('handle spy search event on search-input change', () => {
+    expect(wrapper.find('.main-search input').exists()).toBe(true)
+
+    wrapper.find('.search-btn').trigger('click')
+    expect(search).toBeCalled()
+  })
+
+  it('render correct value of cartSubtotal', () => {
+    expect(wrapper.vm.cartSubtotal).toBe(0)
+    expect(wrapper.find('.price-tooltip').text()).toBe('0.00 EUR')
+
+    store.hotUpdate({
+      getters: {
+        ...getters,
+        getOnlySubtotal: () => 255.726
+      }
+    })
+    wrapper.update()
+    expect(wrapper.vm.cartSubtotal).toBe(255.726)
+    expect(wrapper.find('.price-tooltip').text()).toBe('255.73 EUR')
+  })
+
+  it('check destroying of component', () => {
+    wrapper.destroy()
+    expect(beforeDestroy).toBeCalled()
+  })
 })
-
-// const stub = jest.fn()
-// wrapper.vm.$on('registration::start', stub)
-// wrapper.vm.startRegistration()
-
-// expect(stub).toBeCalled()
